@@ -304,11 +304,15 @@ class TestAsyncGRPOTrainer(TrlTestCase):
         # The data has to come from somewhere: an external `train_dataset`, or an environment that owns it. With
         # neither, construction fails fast.
         training_args = AsyncGRPOConfig(output_dir=self.tmp_dir, max_steps=5, report_to="none")
-        with pytest.raises(ValueError, match="`train_dataset` is required"):
+        with (
+            patch.object(async_grpo_trainer_module, "is_vllm_available", return_value=False),
+            pytest.raises(ValueError, match="`train_dataset` is required"),
+        ):
             AsyncGRPOTrainer(
                 model="trl-internal-testing/small-Qwen2ForCausalLM-2.5",
                 reward_funcs=dummy_reward_func,
                 args=training_args,
+                weight_transfer=_StubWeightTransfer(),
             )
 
     def test_environment_owned_data_requires_max_steps(self):
@@ -319,12 +323,16 @@ class TestAsyncGRPOTrainer(TrlTestCase):
                 return "Guess the 5-letter word."
 
         args = AsyncGRPOConfig(output_dir=self.tmp_dir, report_to="none")  # max_steps unset
-        with pytest.raises(ValueError, match="max_steps"):
+        with (
+            patch.object(async_grpo_trainer_module, "is_vllm_available", return_value=False),
+            pytest.raises(ValueError, match="max_steps"),
+        ):
             AsyncGRPOTrainer(
                 model="trl-internal-testing/small-Qwen2ForCausalLM-2.5",
                 reward_funcs=dummy_reward_func,
                 args=args,
                 environment_factory=DummyEnvironment,
+                weight_transfer=_StubWeightTransfer(),
             )
 
     def test_multiple_environments_without_dataset_raises(self):
@@ -337,12 +345,16 @@ class TestAsyncGRPOTrainer(TrlTestCase):
             def reset(self, **kwargs): ...
 
         args = AsyncGRPOConfig(output_dir=self.tmp_dir, max_steps=1, report_to="none")
-        with pytest.raises(ValueError, match="requires a `train_dataset`"):
+        with (
+            patch.object(async_grpo_trainer_module, "is_vllm_available", return_value=False),
+            pytest.raises(ValueError, match="requires a `train_dataset`"),
+        ):
             AsyncGRPOTrainer(
                 model="trl-internal-testing/small-Qwen2ForCausalLM-2.5",
                 reward_funcs=dummy_reward_func,
                 args=args,
                 environment_factory={"a": EnvA, "b": EnvB},
+                weight_transfer=_StubWeightTransfer(),
             )
 
 
